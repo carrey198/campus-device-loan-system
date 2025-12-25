@@ -1,0 +1,2 @@
+POST http://localhost:7071/api/devices/dev-mac-01/subscribe
+Content-Type: application/json
