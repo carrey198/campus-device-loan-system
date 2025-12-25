@@ -1,0 +1,19 @@
+{
+  "name": "loans-api",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "func start"
+  }
+,
+  "dependencies": {
+    "@azure/functions": "^4.0.0",
+    "@azure/cosmos": "^3.17.3",
+    "axios": "^1.6.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.0"
+  }
+}

@@ -1,0 +1,65 @@
+name: Build and Deploy Loans API to Azure Functions
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      # 关键：把部署包做成 Azure Functions 能识别的结构（函数目录在根）
+      - name: Prepare function package (root-level functions)
+        run: |
+          rm -rf package
+          mkdir package
+
+          # 必备
+          cp host.json package/
+          cp package.json package/
+          cp package-lock.json package/
+
+          # 你的编译产物假设在 dist/，需要把 dist 里的“函数目录”提升到根
+          # 常见结构：dist/functions/<funcName>/...
+          # 你如果是 dist/<funcName>/... 就把这段改一下
+          if [ -d "dist/functions" ]; then
+            cp -r dist/functions/* package/
+          else
+            # fallback: 如果你的 dist 已经是根函数结构，就全拷贝
+            cp -r dist/* package/
+          fi
+
+          # 生产依赖
+          npm ci --omit=dev --prefix package
+
+      - name: Create zip
+        run: |
+          cd package
+          zip -r ../functionapp.zip .
+
+      - name: Deploy (Zip Deploy)
+        uses: Azure/functions-action@v1
+        with:
+          app-name: carrey-loans-api-func-ci
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+          package: functionapp.zip
