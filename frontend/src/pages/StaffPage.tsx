@@ -1,92 +1,113 @@
-// src/pages/StaffPage.tsx
 import { useEffect, useState } from "react";
-import {
-  getDevices,
-  getReservations,
-  markCollected,
-  markReturned,
-  staffAdjustCounts,
-} from "../api/devices";
 
-import type { Device, Reservation } from "../api/devices";
-import { useAuth } from "../context/AuthContext";
+// devices api
+import { getDevices } from "../api/devices";
+import type { Device } from "../api/devices";
+
+// loans api
+import { getLoans } from "../api/loans";
+import type { Loan } from "../api/loans";
 
 export default function StaffPage() {
-  const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isStaff = user?.role === "staff";
+  async function loadAll() {
+    try {
+      setLoading(true);
+      const [devicesData, loansData] = await Promise.all([
+        getDevices(),
+        getLoans(),
+      ]);
 
-  async function load() {
-    setLoading(true);
-    const [d, r] = await Promise.all([
-      getDevices(),
-      getReservations(),
-    ]);
-    setDevices(d);
-    setReservations(r);
-    setLoading(false);
+      setDevices(devicesData);
+      setLoans(loansData);
+    } catch (err: any) {
+      setError(err.message ?? "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
-    load();
+    loadAll();
   }, []);
 
-  const onCollected = async (id: string) => {
-    await markCollected(id);
-    await load();
-  };
+  if (loading) {
+    return <p>Loading staff dashboard…</p>;
+  }
 
-  const onReturned = async (id: string) => {
-    await markReturned(id);
-    await load();
-  };
-
-  const onAdjust = async (d: Device) => {
-    const totalStr = prompt("New total count:", String(d.totalCount));
-    const availableStr = prompt("New available count:", String(d.availableCount));
-
-    if (totalStr === null || availableStr === null) return;
-
-    const total = Number(totalStr);
-    const available = Number(availableStr);
-
-    if (Number.isNaN(total) || Number.isNaN(available)) return;
-
-    await staffAdjustCounts(d.id, total, available);
-    await load();
-  };
-
-  if (!user) return <p>Please login.</p>;
-  if (!isStaff) return <p>Access denied.</p>;
-  if (loading) return <p>Loading...</p>;
+  if (error) {
+    return <p style={{ color: "red" }}>{error}</p>;
+  }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Staff Dashboard</h2>
+    <div style={{ padding: "1rem" }}>
+      <h1>Staff Dashboard</h1>
 
-      <h3>Devices</h3>
-      {devices.map(d => (
-        <div key={d.id}>
-          {d.name} — {d.availableCount}/{d.totalCount}
-          <button onClick={() => onAdjust(d)}>Adjust</button>
-        </div>
-      ))}
+      {/* ===== Devices ===== */}
+      <section>
+        <h2>Devices</h2>
+        {devices.length === 0 ? (
+          <p>No devices found.</p>
+        ) : (
+          <table border={1} cellPadding={8}>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Total</th>
+                <th>Available</th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices.map((d) => (
+                <tr key={d.id}>
+                  <td>{d.id}</td>
+                  <td>{d.name}</td>
+                  <td>{d.totalCount}</td>
+                  <td>{d.availableCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
 
-      <h3>Reservations</h3>
-      {reservations.map(r => (
-        <div key={r.id}>
-          {r.deviceId} — {r.status}
-          {r.status === "reserved" && (
-            <button onClick={() => onCollected(r.id)}>Collected</button>
-          )}
-          {r.status === "collected" && (
-            <button onClick={() => onReturned(r.id)}>Returned</button>
-          )}
-        </div>
-      ))}
+      <hr />
+
+      {/* ===== Loans ===== */}
+      <section>
+        <h2>Loans</h2>
+        {loans.length === 0 ? (
+          <p>No loans found.</p>
+        ) : (
+          <table border={1} cellPadding={8}>
+            <thead>
+              <tr>
+                <th>Loan ID</th>
+                <th>Device ID</th>
+                <th>Borrower ID</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loans.map((loan) => (
+                <tr key={loan.id}>
+                  <td>{loan.id}</td>
+                  <td>{loan.deviceId}</td>
+                  <td>{loan.borrowerId}</td>
+                  <td>{loan.status}</td>
+                  <td>{new Date(loan.createdAt).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
     </div>
   );
 }

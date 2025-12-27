@@ -1,62 +1,57 @@
 import { useEffect, useState } from "react";
-import {
-  getDevices,
-  reserveDevice,
-  subscribeDevice,
-  type Device,
-} from "../api/devices";
-import { useAuth } from "../context/AuthContext";
+import { getDevices } from "../api/devices";
+import type { Device } from "../api/devices";
 
 export default function DevicesPage() {
-  const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  async function load() {
-    const d = await getDevices();
-    setDevices(d);
+  async function loadDevices() {
+    try {
+      setLoading(true);
+      const data = await getDevices();
+      setDevices(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
+  async function handleSubscribe() {
+  try {
+    await loadDevices();
+  } catch (err: any) {
+    alert(err.message);
+  }
+}
+
+
   useEffect(() => {
-    load();
+    loadDevices();
   }, []);
 
-  const onReserve = async (device: Device) => {
-    if (!user) return alert("Please login first.");
-
-    const res = await reserveDevice(device.id, user.studentId);
-    if (!res.ok) return alert("Reservation failed.");
-
-    alert(
-      `Reservation successful.\nPlease collect at pickup point.\nDue date: ${res.dueAt}`
-    );
-    await load();
-  };
-
-  const onSubscribe = async (device: Device) => {
-    if (!user) return alert("Please login first.");
-
-    await subscribeDevice(device.id, user.studentId);
-    alert("Subscription successful. You will be notified by email.");
-  };
+  if (loading) return <p>Loading devices...</p>;
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Devices</h2>
+    <div>
+      <h1>Available Devices</h1>
 
-      {devices.map((d) => (
-        <div key={d.id} style={{ border: "1px solid #ccc", padding: 12 }}>
-          <strong>{d.name}</strong>
-          <p>
-            Total: {d.totalCount} | Available: {d.availableCount}
-          </p>
+      <ul>
+        {devices.map(d => (
+          <li key={d.id} style={{ marginBottom: 12 }}>
+            <strong>{d.name}</strong> —{" "}
+            {d.availableCount}/{d.totalCount}
+            <br />
+           <button onClick={handleSubscribe}>
+  Refresh
+</button>
 
-          {d.availableCount > 0 ? (
-            <button onClick={() => onReserve(d)}>Reserve</button>
-          ) : (
-            <button onClick={() => onSubscribe(d)}>Subscribe (Out of stock)</button>
-          )}
-        </div>
-      ))}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
