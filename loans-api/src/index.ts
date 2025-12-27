@@ -1,10 +1,29 @@
 import { app } from "@azure/functions";
 
-import "./functions/get-devices";
-import "./functions/list-loans";
-import "./functions/get-loan";
-import "./functions/add-loan";
-import "./functions/reserve";
-import "./functions/return";
+import { getDevicesHandler } from "./functions/get-devices";
+import { listLoansHandler } from "./functions/list-loans";
+import { loanCreatedHandler } from "./functions/loan-created-handler";
 
-console.log("✅ Azure Functions app started (DEMO MODE)");
+// ===== HTTP FUNCTIONS =====
+
+app.http("get-devices", {
+  route: "devices",
+  methods: ["GET", "OPTIONS"],
+  authLevel: "anonymous",
+  handler: getDevicesHandler,
+});
+
+app.http("list-loans", {
+  route: "loans",
+  methods: ["GET", "OPTIONS"],
+  authLevel: "anonymous",
+  handler: listLoansHandler,
+});
+
+// ===== EVENT GRID =====
+
+app.eventGrid("loan-created-handler", {
+  handler: loanCreatedHandler,
+});
+
+console.log("✅ Azure Functions app started");
