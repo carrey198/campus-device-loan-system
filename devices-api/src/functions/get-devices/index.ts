@@ -1,13 +1,31 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
-app.http("get-devices", {
-  methods: ["GET"],
-  authLevel: "anonymous",
-  route: "devices",
-  handler: async (req: HttpRequest, ctx: InvocationContext): Promise<HttpResponseInit> => {
-    return {
-      status: 200,
-      jsonBody: { message: "Devices list" }
-    };
-  }
-});
+export async function getDevicesHandler(
+  request: HttpRequest,
+  context: InvocationContext
+): Promise<HttpResponseInit> {
+
+  const devices = [
+    {
+      id: "1",
+      name: "Arduino Uno",
+      type: "microcontroller",
+      status: "available",
+      totalCount: 10,
+      availableCount: 7,
+    },
+    {
+      id: "2",
+      name: "Raspberry Pi 4",
+      type: "single-board-computer",
+      status: "available",
+      totalCount: 5,
+      availableCount: 2,
+    }
+  ];
+
+  return {
+    status: 200,
+    jsonBody: devices,
+  };
+}
