@@ -26,4 +26,5 @@ app.eventGrid("loan-created-handler", {
   handler: loanCreatedHandler,
 });
 
-console.log("✅ Azure Functions app started");
+console.log("CI/CD demo: build triggered at " + new Date().toISOString());
+
